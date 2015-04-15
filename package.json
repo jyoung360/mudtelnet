@@ -1,0 +1,16 @@
+{
+  "name": "mudtelnet",
+  "version": "0.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "test"
+  },
+  "dependencies": {
+  	"telnet-client" : "*",
+    "telnet-stream" : "*",
+    "strip-ansi" : "*"
+  },
+  "author": "",
+  "license": "BSD-2-Clause"
+}
