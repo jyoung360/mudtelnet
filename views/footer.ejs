@@ -1,0 +1,72 @@
+
+    <!-- Bootstrap Core JavaScript -->
+    <script src="/js/bootstrap.min.js"></script>
+
+    <!-- Metis Menu Plugin JavaScript -->
+    <script src="/js/plugins/metisMenu/metisMenu.min.js"></script>
+
+    <!-- Morris Charts JavaScript -->
+    <script src="/js/plugins/morris/raphael.min.js"></script>
+    <script src="/js/plugins/morris/morris.min.js"></script>
+    <!-- <script src="js/plugins/morris/morris-data.js"></script> -->
+
+    <!-- Custom Theme JavaScript -->
+    <script src="/js/sb-admin-2.js"></script>
+    <script>
+        var socket = io.connect('http://localhost:3000');
+        
+        // Function to change the content of t2
+        $().ready(function(){
+           console.log('ready'); 
+           $('#send_command').bind('click', function(e) {
+              console.log($('#command_text').val());
+              
+           });
+           $( "#command_text" ).keypress(function(e) {
+               if(e.keyCode == 13) {
+                   socket.emit('command',$('#command_text').val());
+                   $('#command_text').val('');
+               }
+            });
+        });
+
+        var messageHistory = [];
+        socket.on('news', function (data) {    
+            messageHistory.push(data);
+            if(messageHistory.length > 50) {
+                messageHistory.shift();
+            }
+            updateMessages();
+        });
+        socket.on('messages', function (data) {    
+            $('#message_counter').html(data.count);
+        });
+        
+        socket.on('status', function (data) {    
+            console.log(data);
+            $('#wealth').html(data.status.wealth);
+            $('#race').html(data.status.race);
+            $('#Spiritual').css('width',data.status.energies.Spiritual.percent+'%')
+            $('#Metabolic').css('width',data.status.energies.Metabolic.percent+'%')
+            $('#Agonistic').css('width',data.status.energies.Agonistic.percent+'%')
+            $('#Algetic').css('width',data.status.energies.Algetic.percent+'%')
+            $('#Creative').css('width',data.status.energies.Creative.percent+'%')
+            $('#Emotive').css('width',data.status.energies.Emotive.percent+'%')
+            $('#Hedonic').css('width',data.status.energies.Hedonic.percent+'%')
+            $('#Intellectual').css('width',data.status.energies.Intellectual.percent+'%');
+            $('#Phobic').css('width',data.status.energies.Phobic.percent+'%');
+        });
+        
+        var updateMessages = function() {
+            var html = '';
+            for(var i = messageHistory.length-1; i >= 0; i--) {
+                var obj = messageHistory[i];
+                html += '<p>'+obj.message.replace(/\n/ig,"<br>")+'</p>';
+            }
+            var elem = document.getElementById("mud_messages");
+            elem.innerHTML = html;
+        }
+    </script>
+</body>
+
+</html>

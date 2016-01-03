@@ -1,16 +1,22 @@
 {
   "name": "mudtelnet",
   "version": "0.0.0",
-  "description": "",
-  "main": "index.js",
+  "private": true,
   "scripts": {
-    "test": "test"
+    "start": "node ./bin/www"
   },
   "dependencies": {
-  	"telnet-client" : "*",
-    "telnet-stream" : "*",
-    "strip-ansi" : "*"
-  },
-  "author": "",
-  "license": "BSD-2-Clause"
+    "ansi-to-html": "^0.3.0",
+    "ansi2html": "0.0.1",
+    "body-parser": "~1.13.2",
+    "cookie-parser": "~1.3.5",
+    "debug": "~2.2.0",
+    "ejs": "^2.3.4",
+    "express": "~4.13.1",
+    "jade": "~1.11.0",
+    "kafka-node": "^0.2.29",
+    "morgan": "~1.6.1",
+    "serve-favicon": "~2.3.0",
+    "socket.io": "^1.3.7"
+  }
 }
