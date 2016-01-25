@@ -1,4 +1,5 @@
 var debug = require('debug')('mudtelnet:events');
+var debugSkills = require('debug')('mudtelnet:skills');
 var app = undefined;
 var parseStringToNumber = require('../lib/utilities.js').parseStringToNumber;
 
@@ -9,9 +10,7 @@ var Event = function(options) {
 	this.timeout = isNaN(parseInt(options.timeout,10))?30000:parseInt(options.timeout,10);
 	this.action = function() {
 		debug('Performing action '+self.title);
-		console.log(app.get('enabledEvents').indexOf(self.title.toLowerCase()));
 		if(app.get('enabledEvents').indexOf(self.title.toLowerCase()) == -1) {
-			console.log('skipping event action',self.title);
 			return self;
 		}
 		if(options.action && typeof options.action == 'function') {
@@ -23,7 +22,6 @@ var Event = function(options) {
 	this.success = function(match) {
 		debug('Performing success '+self.title);
 		if(app.get('enabledEvents').indexOf(self.title.toLowerCase()) == -1) {
-			console.log('skipping event',self.title);
 			return self;
 		}
 		if(options.success && typeof options.success == 'function') {
@@ -359,7 +357,6 @@ module.exports = function(a) {
 		completed: true,
 		action: function() {
 			var energies = app.get('character').energies;
-            console.log("FUCK YOU2")
             if(energies.Goetic) {
                 console.log('current geoetic energy', energies.Goetic.current);    
             }
@@ -389,7 +386,77 @@ module.exports = function(a) {
 			}
 		}
 	}));
-	
+    
+    app.get('eventHandler').addEvent(new RecurringEvent({ 
+        title: 'Conjuration', 
+		intervalPeriod: 30000,
+		timeout: 20000,
+		regex: /You are a.*conjurer \((\d+)\)./i,
+		action: function() {
+			app.get('actionClient').publish('actions','skill conjuration');
+		},
+		success: function(match) {
+			debugSkills('got conjuration value of '+match[1]);
+			app.get('character').skills.conjuration = match[1];
+			var sockets = app.get('sockets');
+			for(var i in sockets) {
+				var socket = sockets[i];
+				socket.emit('status', { status: app.get('character') });
+			}
+		}
+	}));
+    app.get('eventHandler').addEvent(new RecurringEvent({
+        title: 'Evocation',
+                intervalPeriod: 30000,
+                timeout: 20000,
+                regex: /You are a.*evoker \((\d+)\)./i,
+                action: function() {
+                        app.get('actionClient').publish('actions','skill evocation');
+                },
+                success: function(match) {
+                        debugSkills('got evocation value of '+match[1]);
+                        app.get('character').skills.evocation = match[1];
+                        var sockets = app.get('sockets');
+                        for(var i in sockets) {
+                                var socket = sockets[i];
+                                socket.emit('status', { status: app.get('character') });
+                        }
+                }
+        }));
+	app.get('eventHandler').addEvent(new RecurringEvent({ 
+		title: 'Air', 
+		intervalPeriod: 30000,
+		timeout: 20000,
+		regex: false,
+		completed: true,
+		action: function() {
+			app.get('actionClient').publish('actions','ttt');
+		}
+	}));
+    app.get('eventHandler').addEvent(new RecurringEvent({ 
+		title: 'Tick', 
+		intervalPeriod: 5000,
+		timeout: 5000,
+		regex: false,
+		completed: true,
+		action: function() {
+            var energies = app.get('character').energies;
+            if(energies.Goetic && energies.Goetic.current > 50) {
+                app.get('actionClient').publish('actions','will an air elemental to appear');
+                app.get('actionClient').publish('actions','air');
+		app.get('actionClient').publish('actions','norm');
+		app.get('actionClient').publish('actions','n');
+		app.get('actionClient').publish('actions','s');
+                //app.get('actionClient').publish('actions','cr');
+		app.get('actionClient').publish('actions','tra aeroturgy');
+            }
+            else {
+                app.get('actionClient').publish('actions','rest');
+                app.get('actionClient').publish('actions','re');
+            }
+            app.get('actionClient').publish('actions','show energies');
+		}
+	}));
 	app.get('eventHandler').addEvent(new RecurringEvent({ 
 		title: 'Shillelagh', 
 		intervalPeriod: 30000,

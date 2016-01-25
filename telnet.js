@@ -7,19 +7,6 @@ var stream = require('stream');
 var util = require('util');
 var config = require('./config.js')();
 var stripAnsi = require('strip-ansi');
-var kafka = require('kafka-node'),
-Producer = kafka.Producer,
-KeyedMessage = kafka.KeyedMessage,
-client = new kafka.Client('52.24.95.119:32774/','test'),
-producer = new Producer(client);
-producer.on('ready', function () {
-    console.log('producer ready');
-});
- 
-producer.on('error', function (err) {
-    console.log('producer error',err)
-})
-
 var redis = require("redis"),
 outputclient = redis.createClient(6379,'127.0.0.1'),
 actionclient = redis.createClient(6379,'127.0.0.1');
@@ -76,11 +63,11 @@ TransformThrough.prototype._transform =
         outputclient.publish("mud-raw-input",string);
         string = stripAnsi(string);
         outputclient.publish("mud-input",string);
-        producer.send([{ topic: 'topic1', messages: string}], function (err, data) {
-            if(err) {
-                console.log(err);
-            }
-        });
+        // producer.send([{ topic: 'topic1', messages: string}], function (err, data) {
+        //     if(err) {
+        //         console.log(err);
+        //     }
+        // });
       
     	// var commands = string.split("\n");
     	// for(var i in commands) {
