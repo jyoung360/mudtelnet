@@ -60,7 +60,6 @@ module.exports = function(a) {
 		var lastPart = phrase;
 		var lastWord = lastPart.split(' ').pop().trim();
 		var matchPhrase = lastPart.split(' ').slice(0,-1).join(' ')+'\.\.\.';
-		console.log(matchPhrase);
 		var regex = new RegExp(matchPhrase,'i');
 		app.get('triggerHandler').addTrigger(new Trigger({ 
 			title: matchPhrase, 
@@ -84,5 +83,96 @@ module.exports = function(a) {
 			}
 		}));
 	});
+    
+    
+    
+    app.get('triggerHandler').addTrigger(new Trigger({ 
+		title: 'Verdant Eruption', 
+		match: function(message) {
+            var regex = /You feel Aeda's knowledge and strength well up within you, filling you with the power of the ancient forests and reefs/i;
+            if(match = message.match(regex)) {
+                return match;
+            }
+		},
+		success: function(results) { 
+            console.log('got verdant eruption');
+            setTimeout(function() {
+                app.get('actionClient').publish('actions','say I can cast Verdant Eruption in 4 minutes.');
+            }, 60*1000*1);
+            setTimeout(function() {
+                app.get('actionClient').publish('actions','say I can cast Verdant Eruption in 3 minutes.');
+            }, 60*1000*2);
+            setTimeout(function() {
+                app.get('actionClient').publish('actions','say I can cast Verdant Eruption in 2 minutes.');
+            }, 60*1000*3);
+            setTimeout(function() {
+                app.get('actionClient').publish('actions','say I can cast Verdant Eruption in 1 minute.');
+            }, 60*1000*4);
+            setTimeout(function() {
+                app.get('actionClient').publish('actions','say I am ready to cast Verdant Eruption again.');
+            }, 60*1000*5);
+		}
+	}));
+    
+    app.get('triggerHandler').addTrigger(new Trigger({ 
+		title: 'Banish Undead', 
+		match: function(message) {
+            var regex = /You shout stridently, calling forth Aeda's cleansing wrath upon the undead/i;
+            if(match = message.match(regex)) {
+                return match;
+            }
+		},
+		success: function(results) { 
+            console.log('got banish undead');
+            setTimeout(function() {
+                app.get('actionClient').publish('actions','say I am ready to cast Banish Undead again.');
+            }, 60*1000*5);
+		}
+	}));
+    
+    app.get('triggerHandler').addTrigger(new Trigger({ 
+		title: 'Energies', 
+		match: function(message) {
+            var regex = /Energies of/i;
+            if(match = message.match(regex)) {
+                return match;
+            }
+			//app.get('actionClient').publish('actions','show energies');
+		},
+		success: function(results) { 
+			var matches = results.input.match(/\|(.*?)\|/g);
+			for(var i in matches) {
+				var match = matches[i];
+				var bits = match.split(/\s+/);
+				var type = bits[1];
+				if(type == 'Type')
+					continue;
+				var current = parseFloat(bits[2]);
+				var maximum = parseFloat(bits[3]);
+				var percent = bits[4]?parseFloat(bits[4].replace('%','')):0.0;
+				app.get('character').energies[type] = {
+					"current" : current,
+					"maximum" : maximum,
+					"percent" : percent
+				}
+			}
+            // var energies = app.get('character').energies;
+            // console.log("FUCK YOU")
+            // if(energies.Goetic) {
+            //     console.log('current geoetic energy', energies.Goetic.current);    
+            // }
+            // if(energies.Goetic && energies.Goetic.current < 50) {
+			// 	debug('we need more goetic energy');
+			// 	app.get('actionClient').publish('actions','rest');
+			// 	app.get('actionClient').publish('actions','re');
+            //     app.get('actionClient').publish('actions','show energies');
+			// }
+			var sockets = app.get('sockets');
+			for(var i in sockets) {
+				var socket = sockets[i];
+				socket.emit('status', { status: app.get('character') });
+			}
+		}
+	}));
 	
 }

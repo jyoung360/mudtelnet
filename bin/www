@@ -13,7 +13,6 @@ var convert = new Convert();
 var parseStringToNumber = require('../lib/utilities.js').parseStringToNumber;
 var bunyan = require('bunyan');
 var log = bunyan.createLogger({name: 'myapp'});
-log.info('hi');
 
 /**
  * Get port from environment and store in Express.
@@ -108,8 +107,8 @@ var TriggerHandler = function() {
   };
 };
 
-app.set('enabledEvents', ['recharge goetia','hunger','eat','floraphrasty','energies','shillelagh']);
-//app.set('enabledEvents', []);
+//app.set('enabledEvents', ['recharge goetia','hunger','eat','energies', 'conjuration','tick']);
+app.set('enabledEvents', []);
 var eventHandler = new EventHandler();
 app.set('eventHandler', eventHandler);
 var triggerHandler = new TriggerHandler();
@@ -157,7 +156,6 @@ client.on("message", function (channel, message) {
         }));  
         
       }
-      console.log(app.get('enabledEvents'))
       //app.get('enabledEvents').push(message.toLowerCase());
       //return handleSystemMessage(message);
       debug(channel,message);
