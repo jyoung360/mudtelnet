@@ -107,8 +107,9 @@ var TriggerHandler = function() {
   };
 };
 
-//app.set('enabledEvents', ['recharge goetia','hunger','eat','energies', 'conjuration','tick']);
-app.set('enabledEvents', []);
+var events = process.env.TICK?['recharge goetia','hunger','eat','energies', 'prayer','tick']:[];
+//app.set('enabledEvents', ['recharge goetia','hunger','eat','energies', 'prayer','tick']);
+app.set('enabledEvents', events);
 var eventHandler = new EventHandler();
 app.set('eventHandler', eventHandler);
 var triggerHandler = new TriggerHandler();

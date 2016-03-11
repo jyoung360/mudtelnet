@@ -391,13 +391,13 @@ module.exports = function(a) {
         title: 'Conjuration', 
 		intervalPeriod: 30000,
 		timeout: 20000,
-		regex: /You are a.*conjurer \((\d+)\)./i,
+		regex: /You are a.*thanaturge \((\d+)\)./i,
 		action: function() {
-			app.get('actionClient').publish('actions','skill conjuration');
+			app.get('actionClient').publish('actions','skill thanaturgy');
 		},
 		success: function(match) {
-			debugSkills('got conjuration value of '+match[1]);
-			app.get('character').skills.conjuration = match[1];
+			debugSkills('got thanaturgy value of '+match[1]);
+			app.get('character').skills.thanaturgy = match[1];
 			var sockets = app.get('sockets');
 			for(var i in sockets) {
 				var socket = sockets[i];
@@ -433,38 +433,24 @@ module.exports = function(a) {
 			app.get('actionClient').publish('actions','ttt');
 		}
 	}));
-    app.get('eventHandler').addEvent(new RecurringEvent({ 
+    	app.get('eventHandler').addEvent(new RecurringEvent({ 
 		title: 'Tick', 
-		intervalPeriod: 5000,
-		timeout: 5000,
+		intervalPeriod: 3000,
+		timeout: 3000,
 		regex: false,
 		completed: true,
 		action: function() {
-            var energies = app.get('character').energies;
-            if(energies.Goetic && energies.Goetic.current > 50) {
-                app.get('actionClient').publish('actions','will an air elemental to appear');
-                app.get('actionClient').publish('actions','air');
-		app.get('actionClient').publish('actions','norm');
-		app.get('actionClient').publish('actions','n');
-		app.get('actionClient').publish('actions','s');
-                //app.get('actionClient').publish('actions','cr');
-		app.get('actionClient').publish('actions','tra aeroturgy');
-            }
-            else {
-                app.get('actionClient').publish('actions','rest');
-                app.get('actionClient').publish('actions','re');
-            }
-            app.get('actionClient').publish('actions','show energies');
+                	app.get('actionClient').publish('actions','trme');
 		}
 	}));
 	app.get('eventHandler').addEvent(new RecurringEvent({ 
-		title: 'Shillelagh', 
-		intervalPeriod: 30000,
-		timeout: 20000,
+		title: 'Prayer', 
+		intervalPeriod: 10000,
+		timeout: 10000,
 		regex: false,
 		completed: true,
 		action: function() {
-			app.get('actionClient').publish('actions','clubbit');
+			app.get('actionClient').publish('actions','re');
 		}
 	}));
 	app.get('eventHandler').addEvent(new RecurringEvent({ 

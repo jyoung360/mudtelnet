@@ -130,6 +130,49 @@ module.exports = function(a) {
 		}
 	}));
     
+//     >- Trade Skills --------------------------------------------------------------<
+// |  Appraisal                                     Unpracticed [  22 ]          |
+// |  Finance                                       Unpracticed [  27 ]          |
+// |  Firefighting                             Fairly Competent [  34 ]          |
+// |  Livestock Breeding                                  Inept [  14 ]          |
+// |  Navigation                                          Inept [  17 ]          |
+// |  Torture                                       Unpracticed [  22 ]          |
+// \-----------------------------------------------------------------------------/
+
+    app.get('triggerHandler').addTrigger(new Trigger({ 
+		title: 'Skills', 
+		match: function(message) {
+            var regex = /\|.*\|.*/i;
+            if(match = message.match(regex)) {
+                return match;
+            }
+		},
+		success: function(results) { 
+            var splitResults = results[0].split("| |");
+            for(var i in splitResults) {
+                var pointsRegex = /(\d+)/i;
+                var skillRegex = /\s*(\w+(\s\w+)?)\s+/i;
+                var points = undefined;
+                if(match = splitResults[i].match(pointsRegex)) {
+                    points = parseInt(match[1],10);
+                }
+                if(points && points > 0) {
+                    if(match = splitResults[i].match(skillRegex)) {
+                        var skill = match[1];
+                        var currentPoints = app.get('character').skills[skill];
+                        if(currentPoints && points > currentPoints) {
+                            console.log("Skill %s increased from %s to %s",skill,currentPoints,points);
+                        }
+                        if(currentPoints && points < currentPoints) {
+                            console.log("Skill %s decreased from %s to %s",skill,currentPoints,points);
+                        }
+                        app.get('character').skills[skill] = points;
+                    }
+                }
+            }
+		}
+	}));
+    
     app.get('triggerHandler').addTrigger(new Trigger({ 
 		title: 'Energies', 
 		match: function(message) {
