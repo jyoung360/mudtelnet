@@ -38,8 +38,14 @@ app.set('actionClient',actionClient);
 app.set('client',client);
 var server = http.createServer(app);
 var character = require('../lib/character');
+var environment = require('../lib/environment');
 app.set('sockets',[]);
 app.set('character',character);
+app.set('environment',environment);
+app.set('markovs',{ 1: [], 2: [] });
+app.set('current_markov', {});
+app.set('accuracy', []);
+app.set('didGuess',false);
 
 var io = require('socket.io')(server);
 io.on('connection', function (socket) {
@@ -107,7 +113,7 @@ var TriggerHandler = function() {
   };
 };
 
-var events = process.env.TICK?['recharge goetia','hunger','eat','energies', 'prayer','tick']:[];
+var events = process.env.TICK?['chargeup']:['sp2'];
 //app.set('enabledEvents', ['recharge goetia','hunger','eat','energies', 'prayer','tick']);
 app.set('enabledEvents', events);
 var eventHandler = new EventHandler();
@@ -123,22 +129,25 @@ setInterval(eventHandler.cleanLoop, 10000);
 client.on("message", function (channel, message) {
   if(channel == 'mud-raw-input') { 
     var strippedMessage = stripAnsi(message);
-    strippedMessage = strippedMessage.replace(/(?:\r\n|\r|\n)/g, ' ');
-    for(var i in eventHandler.eventLoop) {
-      var event = eventHandler.eventLoop[i];
-      if(event.completed) continue;
-      if(match = strippedMessage.match(event.regex)) {
-        event.completed = true;
-        event.success(match);
-        debug('found event '+event.title);
+    //strippedMessage = strippedMessage.replace(/(?:\r\n|\r|\n)/g, ' ');
+    var lines = strippedMessage.split('\n');
+    lines.forEach(function(line) {
+      for(var i in eventHandler.eventLoop) {
+        var event = eventHandler.eventLoop[i];
+        if(event.completed) continue;
+        if(match = line.match(event.regex)) {
+          event.completed = true;
+          event.success(match);
+          debug('found event '+event.title);
+        }
       }
-    }
-    for(var i in triggerHandler.triggerLoop) {
-      var trigger = triggerHandler.triggerLoop[i];
-      if(match = trigger.match(strippedMessage)) {
-         trigger.success(match);
+      for(var i in triggerHandler.triggerLoop) {
+        var trigger = triggerHandler.triggerLoop[i];
+        if(match = trigger.match(line)) {
+          trigger.success(match);
+        }
       }
-    }
+    })
     var sockets = app.get('sockets');
     for(var i in sockets) {
       var socket = sockets[i];

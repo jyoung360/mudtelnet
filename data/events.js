@@ -2,7 +2,7 @@ var debug = require('debug')('mudtelnet:events');
 var debugSkills = require('debug')('mudtelnet:skills');
 var app = undefined;
 var parseStringToNumber = require('../lib/utilities.js').parseStringToNumber;
-
+var explorations = require('./explorations.js');
 var Event = function(options) {
 	var self = this;
 	this.title = options.title || 'Default Event';
@@ -368,6 +368,47 @@ module.exports = function(a) {
 		}
 	});
     app.get('eventHandler').addEvent(reEvent);
+
+	app.get('eventHandler').addEvent(new RecurringEvent({ 
+        title: 'sp2', 
+		intervalPeriod: 15000,
+		timeout: 15000,
+		action: function() {
+			app.get('actionClient').publish('actions','sp');
+		}
+	}));
+
+	app.get('eventHandler').addEvent(new RecurringEvent({ 
+        title: 'chargeup', 
+		intervalPeriod: 60000,
+		timeout: 60000,
+		action: function() {
+			var energies = app.get('character').energies;
+			console.log(energies);
+			if(energies.Entropic && energies.Entropic.percent < 100) {
+				debug('we need more Entropic energy');
+				app.get('actionClient').publish('actions','me');
+			}
+			if(energies.Order && energies.Order.percent < 100) {
+				debug('we need more Order energy');
+				app.get('actionClient').publish('actions','ie');
+			}
+			if(energies['Amalgamal Cold'] && energies['Amalgamal Cold'].percent < 100) {
+				debug('we need more Cold energy');
+				app.get('actionClient').publish('actions','cold');
+			}
+			if(energies['Amalgamal Ice'] && energies['Amalgamal Ice'].percent < 100) {
+				debug('we need more Ice energy');
+				app.get('actionClient').publish('actions','ice');
+			}
+			if(energies['Magickal'] && energies['Magickal'].percent < 100) {
+				debug('we need more Magickal energy');
+				app.get('actionClient').publish('actions','mag');
+			}
+			app.get('actionClient').publish('actions','rest');
+		}
+	}));
+
 	app.get('eventHandler').addEvent(new RecurringEvent({ 
         title: 'Floraphrasty', 
 		intervalPeriod: 30000,
@@ -384,6 +425,17 @@ module.exports = function(a) {
 				var socket = sockets[i];
 				socket.emit('status', { status: app.get('character') });
 			}
+		}
+	}));
+
+	app.get('eventHandler').addEvent(new RecurringEvent({ 
+        title: 'Frigus Arctus', 
+		intervalPeriod: 60000,
+		timeout: 60000,
+		regex: false,
+		action: function() {
+			app.get('actionClient').publish('actions','fa');
+			app.get('actionClient').publish('actions','rest');
 		}
 	}));
     
@@ -433,10 +485,10 @@ module.exports = function(a) {
 			app.get('actionClient').publish('actions','ttt');
 		}
 	}));
-    	app.get('eventHandler').addEvent(new RecurringEvent({ 
+	app.get('eventHandler').addEvent(new RecurringEvent({ 
 		title: 'Tick', 
-		intervalPeriod: 3000,
-		timeout: 3000,
+		intervalPeriod: 60000,
+		timeout: 60000,
 		regex: false,
 		completed: true,
 		action: function() {
@@ -535,6 +587,66 @@ module.exports = function(a) {
 		}
 	}));
 	app.get('eventHandler').addEvent(new RecurringEvent({ 
+		title: 'Heartbeat', 
+		intervalPeriod: 2000,
+		timeout: 2000,
+		regex: /You determine that you are at the coordinates -?\d+, -?\d+, -?\d+ in (.*), and so at global coordinates (.*), (.*), (.*)\./i,
+		action: function() {
+			if(app.get('environment').living_beings.length > 0) {
+				app.get('environment').living_beings.forEach(function(being) {
+					app.get('actionClient').publish('actions','kill '+being);
+				});
+			}
+			else {
+				app.get('actionClient').publish('actions','determine location');
+			}
+		},
+		success: function(match) { 
+			console.log(match[2],match[3],match[4]);
+			var pos = match[2]+','+match[3]+','+match[4];
+			console.log(app.get('character').exploredLocations)
+			if(app.get('character').exploredLocations[pos]) {
+				var j = 1;
+				while (j < 10) {
+					var dirs = [ 
+						{
+							dir: 'n',
+							pos: match[2]+','+(parseInt(match[3],10)+j)+','+match[4]
+						},
+						{
+							dir: 's',
+							pos: match[2]+','+(parseInt(match[3],10)-j)+','+match[4]
+						},
+						{
+							dir: 'e',
+							pos: (parseInt(match[2],10)+j)+','+match[3]+','+match[4]
+						},
+						{
+							dir: 'w',
+							pos: (parseInt(match[2],10)-j)+','+match[3]+','+match[4]
+						}
+					];
+					var i = 0;
+					while (i < 10) {
+						var dir = dirs[Math.floor(Math.random()*dirs.length)];
+						console.log('trying '+dir.pos);
+						if(!app.get('character').exploredLocations[dir.pos]) {
+							console.log('going '+dir.dir)
+							app.get('actionClient').publish('actions','go '+dir.dir);
+							i = 10;
+							j = 10;
+						}
+						i++;	
+					}		
+					j++;			
+				}
+			}
+			else {
+				app.get('character').exploredLocations[pos] = true;
+			}
+		}
+	}));
+	app.get('eventHandler').addEvent(new RecurringEvent({ 
 		title: 'Race', 
 		intervalPeriod: 60000,
 		timeout: 30000,
@@ -553,11 +665,12 @@ module.exports = function(a) {
 	}));
 	app.get('eventHandler').addEvent(new RecurringEvent({ 
 		title: 'Energies', 
-		intervalPeriod: 30000,
-		timeout: 20000,
+		intervalPeriod: 10000,
+		timeout: 10000,
 		regex: /Energies of/i,
 		action: function() {
 			app.get('actionClient').publish('actions','show energies');
+			app.get('actionClient').publish('actions','rest');
 		},
 		success: function(results) { 
 			var matches = results.input.match(/\|(.*?)\|/g);

@@ -143,7 +143,8 @@ var handleSystemMessage = function(message) {
 }
 
 var handleMudMessage = function(message) {
-  var command = message.replace(/(?:\r\n|\r|\n)/g, ' ');
+  //var command = message.replace(/(?:\r\n|\r|\n)/g, ' ');
+  var command = message;
   for(var j in mudDetails.matches) {
     var match = mudDetails.matches[j];
     if(results = command.match(match.regex)) {

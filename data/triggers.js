@@ -1,6 +1,42 @@
 var debug = require('debug')('mudtelnet:triggers');
+var fs = require('fs');
 var app = undefined;
 var parseStringToNumber = require('../lib/utilities.js').parseStringToNumber;
+var knownMessages = [];
+fs.readFile('known_messages.json',function(err,data) {
+	if(err) {
+		return console.log(err);
+	}
+	try {
+		knownMessages = JSON.parse(data);
+	}
+	catch(e) {
+		console.log(e);
+	}
+
+});
+
+// var natural = require('natural'),
+//   classifier = null;
+
+// natural.BayesClassifier.load('classifier.json', null, function(err, c) {
+// 	if(err) {
+// 		classifier = new natural.BayesClassifier();
+// 	}
+// 	else {
+// 		classifier = c;
+// 	}
+// });
+
+// classifier.events.on('trainedWithDocument', function (obj) {
+// //    console.log(obj);
+//    /* {
+//    *   total: 23 // There are 23 total documents being trained against
+//    *   index: 12 // The index/number of the document that's just been trained against
+//    *   doc: {...} // The document that has just been indexed
+//    *  }
+//    */ 
+// });
 
 var phrases = ['O Aeda, we sing praises to you, who is the voice of the trees',
 	'As the earth of the world is your flesh, so are we your hands',
@@ -170,6 +206,225 @@ module.exports = function(a) {
                     }
                 }
             }
+		}
+	}));
+	app.get('triggerHandler').addTrigger(new Trigger({ 
+		title: 'KilledSomething', 
+		match: function(message) {
+            var regex = /The (\w+) dies./i;
+            if(match = message.match(regex)) {
+                return match;
+            }
+		},
+		success: function(results) { 
+			console.log(results[1]);
+			app.get('environment').living_beings = app.get('environment').living_beings.filter(function(item) {
+				if(item !== results[1])
+					return item;
+			});
+		}
+	}));
+	
+	app.get('triggerHandler').addTrigger(new Trigger({ 
+		title: 'Missing', 
+		match: function(message) {
+            var regex = /You do not (?:have|see) an? (\w+)/i;
+            if(match = message.match(regex)) {
+                return match;
+            }
+		},
+		success: function(results) { 
+			console.log(results[1]);
+			app.get('environment').contents = app.get('environment').contents.filter(function(item) {
+				if(item !== results[1])
+					return item;
+			});
+			app.get('environment').living_beings = app.get('environment').living_beings.filter(function(item) {
+				if(item !== results[1])
+					return item;
+			});
+			app.get('environment').gettables = app.get('environment').living_beings.filter(function(item) {
+				if(item !== results[1])
+					return item;
+			});
+		}
+	}));
+	
+	app.get('triggerHandler').addTrigger(new Trigger({ 
+		title: 'Contents', 
+		match: function(message) {
+            var regex = /You see an? (.*)\./i;
+            if(match = message.match(regex)) {
+                return match;
+            }
+		},
+		success: function(results) { 
+			console.log(results);
+			app.get('environment').contents.push(results[1]);
+			// app.get('actionClient').publish('actions','touch '+results[1]);
+		}
+	}));
+	
+	app.get('triggerHandler').addTrigger(new Trigger({ 
+		title: 'Analyze Living', 
+		match: function(message) {
+            var regex = /The (.*) would need to trust you before you could do that./i;
+            if(match = message.match(regex)) {
+                return match;
+            }
+		},
+		success: function(results) { 
+			app.get('environment').living_beings.push(results[1]);
+			// app.get('actionClient').publish('actions','say killing all');
+		}
+	}));
+
+	app.get('triggerHandler').addTrigger(new Trigger({ 
+		title: 'Markhov', 
+		match: function(message) {
+            var regex = /\[(\d)\] (.*)/i;
+            if(match = message.match(regex)) {
+                return match;
+            }
+		},
+		success: function(results) { 
+			// console.log(results);
+			try {
+				console.log(knownMessages.length);
+				// console.log(`I think ${results[2]} is`,classifier.classify(results[2]));
+				if(knownMessages.indexOf(results[2]) != -1) {
+					console.log(`I think it is ${results[1]}`);
+					app.set('didGuess',true);
+					setTimeout(function(){
+						app.get('actionClient').publish('actions','sv '+results[1]);
+					}, 1000);
+					
+				}
+				else {
+					if(!app.get('didGuess') && results[1] == 2){
+						// console.log(`I didn't guess on 1 and don't know no ${results[1]} so I'm just guessing.`)
+						app.set('didGuess',true);
+						app.get('actionClient').publish('actions','concentrate on my own stream of thoughts');
+						app.get('actionClient').publish('actions','arrs');
+						app.get('actionClient').publish('actions','buy arrow');
+						app.get('actionClient').publish('actions','rest');
+					}
+					else {
+						// app.get('actionClient').publish('actions','concentrate on my own stream of thoughts');
+						// console.log(`I have no guess for ${results[1]}`);
+					}
+				}
+				app.get('current_markov')[results[1]] = { 
+					statement: results[2]
+				};
+			}
+			catch(e) {
+				console.log(e);
+				app.get('current_markov')[results[1]] = { 
+					statement: results[2]
+				};
+			}
+			
+			// app.get('actionClient').publish('actions','say killing all');
+		}
+	}));
+
+	app.get('triggerHandler').addTrigger(new Trigger({ 
+		title: 'Markhov Success', 
+		match: function(message) {
+            var regex = /You sense that you have correctly identified the pure symbolic stream/i;
+            if(match = message.match(regex)) {
+                return match;
+            }
+		},
+		success: function(results) { 
+			if(knownMessages.indexOf(app.get('current_markov')[1].statement) == -1) {
+				knownMessages.push(app.get('current_markov')[1].statement);
+				fs.writeFileSync('known_messages.json', JSON.stringify(knownMessages));
+			}
+			else {
+				console.log(`We already know about ${app.get('current_markov')[1].statement}`);
+			}
+			app.get('markovs')[1].push( {
+				quote: app.get('current_markov')[1],
+				success: true
+			})
+			app.get('markovs')[2].push( {
+				quote: app.get('current_markov')[2],
+				success: false
+			})
+
+			app.set('current_markov', {});
+
+			// classifier.addDocument(app.get('current_markov')[1].statement, 'good');
+			// classifier.addDocument(app.get('current_markov')[2].statement, 'bad');
+			// classifier.train();
+			// classifier.save('classifier.json', function(err, classifier) {
+			// });
+
+			app.set('didGuess',false);
+			// app.get('actionClient').publish('actions','say killing all');
+		}
+	}));
+
+	app.get('triggerHandler').addTrigger(new Trigger({ 
+		title: 'Markhov Fail', 
+		match: function(message) {
+            var regex = /You sense that you have chosen, incorrectly, a mixed symbolic stream/i;
+            if(match = message.match(regex)) {
+                return match;
+            }
+		},
+		success: function(results) { 
+			if(knownMessages.indexOf(app.get('current_markov')[2].statement) == -1) {
+				knownMessages.push(app.get('current_markov')[2].statement);
+				fs.writeFileSync('known_messages.json', JSON.stringify(knownMessages));
+			}
+			else {
+				console.log(`We already know about ${app.get('current_markov')[1].statement}`);
+			}
+			app.get('markovs')[1].push( {
+				quote: app.get('current_markov')[1],
+				success: false
+			})
+			app.get('markovs')[2].push( {
+				quote: app.get('current_markov')[2],
+				success: true
+			})
+
+			app.set('current_markov', {});
+
+			// classifier.addDocument(app.get('current_markov')[1].statement, 'bad');
+			// classifier.addDocument(app.get('current_markov')[2].statement, 'good');
+			// classifier.train();
+			// classifier.save('classifier.json', function(err, classifier) {
+			// });
+			app.set('didGuess',false);
+			// app.get('actionClient').publish('actions','say killing all');
+		}
+	}));
+
+	app.get('triggerHandler').addTrigger(new Trigger({ 
+		title: 'Process Energy', 
+		match: function(message) {
+			var regex = /\|\s+(\D*)(\d+\.?\d?)\s*(\d+\.?\d+)\s*(\d+\.?\d+%).*\|/i;
+            if(match = message.match(regex)) {
+				// console.log(match);
+                return match;
+            }
+		},
+		success: function(results) { 
+			var type = results[1].trim();
+			var current = parseFloat(results[2]);
+			var maximum = parseFloat(results[3]);
+			var percent = parseFloat(results[4].replace('%',''));
+			app.get('character').energies[type] = {
+				"current" : current,
+				"maximum" : maximum,
+				"percent" : percent
+			}
+			// app.get('environment').living_beings.push(results[1]);
+			// app.get('actionClient').publish('actions','say killing all');
 		}
 	}));
     
