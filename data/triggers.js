@@ -290,7 +290,7 @@ module.exports = function(a) {
 		success: function(results) { 
 			// console.log(results);
 			try {
-				console.log(knownMessages.length);
+				// console.log(app.get('character'));
 				// console.log(`I think ${results[2]} is`,classifier.classify(results[2]));
 				if(knownMessages.indexOf(results[2]) != -1) {
 					console.log(`I think it is ${results[1]}`);
@@ -302,14 +302,15 @@ module.exports = function(a) {
 				}
 				else {
 					if(!app.get('didGuess') && results[1] == 2){
-						// console.log(`I didn't guess on 1 and don't know no ${results[1]} so I'm just guessing.`)
+						console.log(`I didn't guess on 1 and don't know no ${results[1]} so I'm just guessing.`)
 						app.set('didGuess',true);
-						app.get('actionClient').publish('actions','concentrate on my own stream of thoughts');
-						app.get('actionClient').publish('actions','arrs');
-						app.get('actionClient').publish('actions','buy arrow');
-						app.get('actionClient').publish('actions','rest');
+						app.get('actionClient').publish('actions','sv 1');
+						// app.get('actionClient').publish('actions','concentrate on my own stream of thoughts');
+						// app.get('actionClient').publish('actions','show energies');
+						// app.get('actionClient').publish('actions','rest');
 					}
 					else {
+						console.log('how did I get here')
 						// app.get('actionClient').publish('actions','concentrate on my own stream of thoughts');
 						// console.log(`I have no guess for ${results[1]}`);
 					}
@@ -405,6 +406,20 @@ module.exports = function(a) {
 	}));
 
 	app.get('triggerHandler').addTrigger(new Trigger({ 
+		title: 'Mortal Wound', 
+		match: function(message) {
+			var regex = /has been mortally wounded and will die soon if not aided/i;
+            if(match = message.match(regex)) {
+				// console.log(match);
+                return match;
+            }
+		},
+		success: function(results) { 
+			app.get('actionClient').publish('actions','po');
+		}
+	}));
+
+	app.get('triggerHandler').addTrigger(new Trigger({ 
 		title: 'Process Energy', 
 		match: function(message) {
 			var regex = /\|\s+(\D*)(\d+\.?\d?)\s*(\d+\.?\d+)\s*(\d+\.?\d+%).*\|/i;
@@ -469,6 +484,13 @@ module.exports = function(a) {
 			for(var i in sockets) {
 				var socket = sockets[i];
 				socket.emit('status', { status: app.get('character') });
+			}
+
+			var currentEntropic = app.get('character').energies.Entropic ? app.get('character').energies.Entropic.current : 0;
+			console.log("CURRENT ENTROPIC ", currentEntropic)
+			if(currentEntropic > 100) {
+				app.get('actionClient').publish('actions','buy arrow');
+				app.get('actionClient').publish('actions','arrs');
 			}
 		}
 	}));

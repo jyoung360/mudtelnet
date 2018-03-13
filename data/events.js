@@ -379,6 +379,36 @@ module.exports = function(a) {
 	}));
 
 	app.get('eventHandler').addEvent(new RecurringEvent({ 
+        title: 'tick skills', 
+		intervalPeriod: 30000,
+		timeout: 1000,
+		action: function() {
+			app.get('actionClient').publish('actions','perform the ritual of the shawl');
+			app.get('actionClient').publish('actions','rest');
+		}
+	}));
+
+	app.get('eventHandler').addEvent(new RecurringEvent({ 
+        title: 'forage', 
+		intervalPeriod: 15000,
+		timeout: 15000,
+		action: function() {
+			app.get('actionClient').publish('actions','wander');
+			app.get('actionClient').publish('actions','forage for herbs');
+		}
+	}));
+
+	app.get('eventHandler').addEvent(new RecurringEvent({ 
+        title: 'suffuse', 
+		intervalPeriod: 15000,
+		timeout: 15000,
+		action: function() {
+			app.get('actionClient').publish('actions','suf suit');
+			app.get('actionClient').publish('actions','rest');
+		}
+	}));
+
+	app.get('eventHandler').addEvent(new RecurringEvent({ 
         title: 'chargeup', 
 		intervalPeriod: 60000,
 		timeout: 60000,

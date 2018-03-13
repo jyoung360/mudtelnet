@@ -11,14 +11,12 @@ var stripAnsi = require('strip-ansi');
 var Convert = require('ansi-to-html');
 var convert = new Convert();
 var parseStringToNumber = require('../lib/utilities.js').parseStringToNumber;
-var bunyan = require('bunyan');
-var log = bunyan.createLogger({name: 'myapp'});
 
 /**
  * Get port from environment and store in Express.
  */
 
-var port = normalizePort(process.env.PORT || '3000');
+var port = normalizePort(process.env.PORT || '3001');
 app.set('port', port);
 
 /**
@@ -113,7 +111,8 @@ var TriggerHandler = function() {
   };
 };
 
-var events = process.env.TICK?['chargeup']:['sp2'];
+// var events = process.env.TICK?['tick skills']:['tick skills'];
+var events = process.env.TICK?[]:[];
 //app.set('enabledEvents', ['recharge goetia','hunger','eat','energies', 'prayer','tick']);
 app.set('enabledEvents', events);
 var eventHandler = new EventHandler();
