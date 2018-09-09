@@ -188,7 +188,7 @@ var determineAction = function() {
   var sourceDest = findNewLocation(state.location.global);
   
   var directions = [];//calculatePath(state.location.global,knownLocations[sourceDest.nextLocation]);
-  var actions = ['xp','show energies','show attackers','dl'];
+  var actions = [];//['xp','show energies','show attackers','dl'];
   for(var i in directions) {
     actions.push(directions[i]);
   }

@@ -149,6 +149,107 @@ module.exports = function(a) {
             }, 60*1000*5);
 		}
 	}));
+
+	app.set('rotationCounter', 0);
+
+
+	app.get('triggerHandler').addTrigger(new Trigger({ 
+		title: 'portal', 
+		match: function(message) {
+            var regex = /Your Illuminatorium Oculus glows brightly and a (.*) portal materializes in the air\./i;
+            if(match = message.match(regex)) {
+                return match;
+            }
+		},
+		success: function(results) { 
+			console.log('<------  Found right combo  ------>');
+			app.set('PortalFound', true);
+		}
+	}));
+
+	app.get('triggerHandler').addTrigger(new Trigger({ 
+		title: 'navigation', 
+		match: function(message) {
+			if(app.get('CaptureInput')) {
+				app.set('CaptureInputText', `${app.get('CaptureInputText')}${message}\n`)
+			}
+            var regex = /Symbolic streams flow into your thoughts and present themselves before your mind's eye(.*)/i;
+            if(match = message.match(regex)) {
+                return match;
+            }
+		},
+		success: function(results) { 
+			app.set('CaptureInput', 'InProgress');
+			app.set('CaptureInputText', '')
+			console.log(results);
+		}
+	}));
+
+	app.get('triggerHandler').addTrigger(new Trigger({ 
+		title: 'commandprompt', 
+		match: function(message) {
+            var regex = />/i;
+            if(match = message.match(regex)) {
+                return match;
+            }
+		},
+		success: function(results) { 
+			app.set('CaptureInput', 'Complete');
+			console.log('command prompt found', app.get('CaptureInputText'));
+			app.set('CaptureInputText', '')
+		}
+	}));
+
+	app.get('triggerHandler').addTrigger(new Trigger({ 
+		title: 'runes', 
+		match: function(message) {
+            var regex = /The first rune is (\w*) and points (\w*).  The second rune is (\w*) and points (\w*).  The third rune is (\w*) and points (\w*)\./i;
+            if(match = message.match(regex)) {
+                return match;
+            }
+		},
+		success: function(results) { 
+			if(app.get('PortalFound')) {
+				console.log('found me a portals')
+				return false;
+			}
+			var counter = app.get('rotationCounter');
+			if(results[2] == 'downward') {
+				console.log('flipping first rune');
+				app.get('actionClient').publish('actions','flip first rune');
+				app.get('actionClient').publish('actions','enter portal');
+				app.get('actionClient').publish('actions','l at runes on oculus');
+			}
+			else if(results[4] == 'downward') {
+				console.log('flipping second rune');
+				app.get('actionClient').publish('actions','flip second rune');
+				app.get('actionClient').publish('actions','enter portal');
+				app.get('actionClient').publish('actions','l at runes on oculus');
+			}
+			else if(results[6] == 'downward') {
+				console.log('flipping third rune');
+				app.get('actionClient').publish('actions','flip third rune');
+				app.get('actionClient').publish('actions','enter portal');
+				app.get('actionClient').publish('actions','l at runes on oculus');
+			}
+			else {
+				console.log('just rotatin');
+				app.get('actionClient').publish('actions','enter portal');
+				app.get('actionClient').publish('actions','rotate oculus left');
+				app.get('actionClient').publish('actions','l at runes on oculus');
+				counter++;
+				if(counter > 4) {
+					app.get('actionClient').publish('actions','flip oculus');
+					counter = 0;
+				}
+				app.set('rotationCounter', counter);
+			}
+			
+            // setTimeout(function() {
+            //     app.get('actionClient').publish('actions','say I am ready to cast Banish Undead again.');
+            // }, 60*1000*5);
+		}
+	}));
     
     app.get('triggerHandler').addTrigger(new Trigger({ 
 		title: 'Banish Undead', 
@@ -282,19 +383,18 @@ module.exports = function(a) {
 	app.get('triggerHandler').addTrigger(new Trigger({ 
 		title: 'Markhov', 
 		match: function(message) {
-            var regex = /\[(\d)\] (.*)/i;
+			var regex = /\[(\d)\] (.*)/i;
             if(match = message.match(regex)) {
                 return match;
             }
 		},
 		success: function(results) { 
-			// console.log(results);
 			try {
 				// console.log(app.get('character'));
 				// console.log(`I think ${results[2]} is`,classifier.classify(results[2]));
 				if(knownMessages.indexOf(results[2]) != -1) {
 					console.log(`I think it is ${results[1]}`);
-					app.set('didGuess',true);
+					app.set('didGuess',results[1]);
 					setTimeout(function(){
 						app.get('actionClient').publish('actions','sv '+results[1]);
 					}, 1000);
@@ -303,14 +403,14 @@ module.exports = function(a) {
 				else {
 					if(!app.get('didGuess') && results[1] == 2){
 						console.log(`I didn't guess on 1 and don't know no ${results[1]} so I'm just guessing.`)
-						app.set('didGuess',true);
-						app.get('actionClient').publish('actions','sv 1');
-						// app.get('actionClient').publish('actions','concentrate on my own stream of thoughts');
+						app.set('didGuess',false);
+						// app.get('actionClient').publish('actions','sv 1');
+						app.get('actionClient').publish('actions','concentrate on my own stream of thoughts');
 						// app.get('actionClient').publish('actions','show energies');
 						// app.get('actionClient').publish('actions','rest');
 					}
 					else {
-						console.log('how did I get here')
+						// console.log('how did I get here', app.get('didGuess'))
 						// app.get('actionClient').publish('actions','concentrate on my own stream of thoughts');
 						// console.log(`I have no guess for ${results[1]}`);
 					}
@@ -341,6 +441,7 @@ module.exports = function(a) {
 		success: function(results) { 
 			if(knownMessages.indexOf(app.get('current_markov')[1].statement) == -1) {
 				knownMessages.push(app.get('current_markov')[1].statement);
+				console.log('found a new valid message!');
 				fs.writeFileSync('known_messages.json', JSON.stringify(knownMessages));
 			}
 			else {
@@ -406,16 +507,30 @@ module.exports = function(a) {
 	}));
 
 	app.get('triggerHandler').addTrigger(new Trigger({ 
-		title: 'Mortal Wound', 
+		title: 'Markhov complete', 
 		match: function(message) {
-			var regex = /has been mortally wounded and will die soon if not aided/i;
+			var regex = /You have completed your attempt at separating pure from mixed symbolic-cognitive streams./i;
             if(match = message.match(regex)) {
 				// console.log(match);
                 return match;
             }
 		},
 		success: function(results) { 
-			app.get('actionClient').publish('actions','po');
+			app.set('didGuess',false);
+		}
+	}));
+
+	app.get('triggerHandler').addTrigger(new Trigger({ 
+		title: 'Mortal Wound', 
+		match: function(message) {
+			var regex = /(\S*) has been mortally wounded and will die soon if not aided/i;
+            if(match = message.match(regex)) {
+				// console.log(match);
+                return match;
+            }
+		},
+		success: function(results) { 
+			app.get('actionClient').publish('actions','po '+results[1]);
 		}
 	}));
 
