@@ -3,65 +3,65 @@ var debugSkills = require('debug')('mudtelnet:skills');
 var app = undefined;
 var parseStringToNumber = require('../lib/utilities.js').parseStringToNumber;
 var explorations = require('./explorations.js');
-var Event = function(options) {
+var Event = function (options) {
 	var self = this;
 	this.title = options.title || 'Default Event';
 	this.completed = false;
-	this.timeout = isNaN(parseInt(options.timeout,10))?30000:parseInt(options.timeout,10);
-	this.action = function() {
-		debug('Performing action '+self.title);
-		if(app.get('enabledEvents').indexOf(self.title.toLowerCase()) == -1) {
+	this.timeout = isNaN(parseInt(options.timeout, 10)) ? 30000 : parseInt(options.timeout, 10);
+	this.action = function () {
+		debug('Performing action ' + self.title);
+		if (app.get('enabledEvents').indexOf(self.title.toLowerCase()) == -1) {
 			return self;
 		}
-		if(options.action && typeof options.action == 'function') {
+		if (options.action && typeof options.action == 'function') {
 			options.action();
 		}
 		return self;
 	};
 	this.regex = options.regex || false;
-	this.success = function(match) {
-		debug('Performing success '+self.title);
-		if(app.get('enabledEvents').indexOf(self.title.toLowerCase()) == -1) {
+	this.success = function (match) {
+		debug('Performing success ' + self.title);
+		if (app.get('enabledEvents').indexOf(self.title.toLowerCase()) == -1) {
 			return self;
 		}
-		if(options.success && typeof options.success == 'function') {
+		if (options.success && typeof options.success == 'function') {
 			options.success(match);
 		}
 		return self;
 	};
-	this.failure = function() {
-		debug('Performing failure '+self.title);
-		if(options.failure && typeof options.failure == 'function') {
+	this.failure = function () {
+		debug('Performing failure ' + self.title);
+		if (options.failure && typeof options.failure == 'function') {
 			options.failure();
 		}
 		return self;
 	}
-	this.toString = function() {
+	this.toString = function () {
 		return self.title;
 	}
 	this.expires = Date.now() + this.timeout;
-	this.reset = function() {
-		debug('Performing reset '+this.title);
+	this.reset = function () {
+		debug('Performing reset ' + this.title);
 		this.completed = false;
 		this.expires = Date.now() + this.timeout;
-		if(options.reset && typeof options.reset == 'function') {
+		if (options.reset && typeof options.reset == 'function') {
 			options.reset();
 		}
 		return self;
 	}
 }
 
-var RecurringEvent = function(options) {
+var RecurringEvent = function (options) {
 	Event.call(this, options);
 	var self = this;
 	this.intervalPeriod = options.intervalPeriod || 60000;
-	this.interval = function() {
-		debug('Performing interval '+self.title);
-		if(self.completed || self.expires < Date.now()) {
+	this.interval = function () {
+		debug('Performing interval ' + self.title);
+		if (self.completed || self.expires < Date.now()) {
 			debug('time to add again');
 			app.get('eventHandler').addEvent(self);
 		}
-		if(options.interval && typeof options.interval == 'function') {
+		if (options.interval && typeof options.interval == 'function') {
 			options.interval.call(self);
 		}
 		return self;
@@ -71,66 +71,66 @@ var RecurringEvent = function(options) {
 Event.prototype.constructor = Event;
 RecurringEvent.prototype.constructor = RecurringEvent;
 
-var Room = function(options) {
+var Room = function (options) {
 	var self = this;
 	this.x = options.x || 0;
 	this.y = options.y || 0;
 	this.z = options.z || 0;
-	this.id = options.id || options.x+":"+options.y+":"+options.z;
+	this.id = options.id || options.x + ":" + options.y + ":" + options.z;
 	this.exits = [];
 	this.explored = options.explored || false;
 	return self;
 };
 
-var AreaRooms = function() {
+var AreaRooms = function () {
 	var self = this;
 	this.rooms = {};
-	this.addRoom = function(room) {
-		if(!self.rooms[room.id]) {
+	this.addRoom = function (room) {
+		if (!self.rooms[room.id]) {
 			return self.rooms[room.id] = room;
 		}
-		if(room.exits.length >= self.rooms[room.id].exits.length) {
+		if (room.exits.length >= self.rooms[room.id].exits.length) {
 			self.rooms[room.id].exits = room.exits;
 		}
 		self.rooms[room.id].explored = self.rooms[room.id].explored || room.explored;
 	};
-	this.getUnexploredRooms = function() {
+	this.getUnexploredRooms = function () {
 		var unexploredRooms = [];
-		for(var i in self.rooms) {
-			if(!self.rooms[i].explored) {
+		for (var i in self.rooms) {
+			if (!self.rooms[i].explored) {
 				unexploredRooms.push(self.rooms[i]);
 			}
 		}
 		return unexploredRooms;
 	};
-	
-	this.printRooms = function() {
-		for(var i in self.rooms) {
+
+	this.printRooms = function () {
+		for (var i in self.rooms) {
 			console.log(self.rooms[i]);
-		}	
+		}
 	};
-	
-	this.getClosestUnexploredRoom = function(currentRoom, testedRooms) {
-		console.log('finding closest unexplored room to ',currentRoom)
-		if(!self.rooms[currentRoom]) {
-			console.log("current room does not exist",currentRoom)
+
+	this.getClosestUnexploredRoom = function (currentRoom, testedRooms) {
+		console.log('finding closest unexplored room to ', currentRoom)
+		if (!self.rooms[currentRoom]) {
+			console.log("current room does not exist", currentRoom)
 			return false;
 		}
-		if(testedRooms.indexOf(currentRoom) > -1) {
-			console.log("we already tested room",currentRoom)
+		if (testedRooms.indexOf(currentRoom) > -1) {
+			console.log("we already tested room", currentRoom)
 			return false;
 		}
 		testedRooms.push(currentRoom);
-		for(var i in self.rooms[currentRoom].exits) {
+		for (var i in self.rooms[currentRoom].exits) {
 			var exit = self.rooms[currentRoom].exits[i];
 			//console.log('testing exit',exit);
-			if(!self.hasRoomBeenExplored(exit.id)) {
+			if (!self.hasRoomBeenExplored(exit.id)) {
 				return exit;
 			}
 			else {
-				var subExits = self.getClosestUnexploredRoom(exit.id,testedRooms);
-				if(subExits) {
-					console.log("here are subexits",subExits);
+				var subExits = self.getClosestUnexploredRoom(exit.id, testedRooms);
+				if (subExits) {
+					console.log("here are subexits", subExits);
 				}
 				return subExits;
 			}
@@ -138,8 +138,8 @@ var AreaRooms = function() {
 		}
 		return false;
 	};
-	this.hasRoomBeenExplored = function(roomId) {
-		if(!self.rooms[roomId] || self.rooms[roomId].explored) {
+	this.hasRoomBeenExplored = function (roomId) {
+		if (!self.rooms[roomId] || self.rooms[roomId].explored) {
 			//console.log("room has been explored", roomId)
 			return true;
 		}
@@ -149,10 +149,10 @@ var AreaRooms = function() {
 	return self;
 }
 
-module.exports = function(a) {
+module.exports = function (a) {
 	app = a;
 	var areaRooms = AreaRooms();
-	
+
 	// var reEvent = new RecurringEvent({ 
 	// 	title: 'Exits', 
 	// 	intervalPeriod: 10000,
@@ -302,7 +302,7 @@ module.exports = function(a) {
 	// 				console.log(e);
 	// 			});
 	// 		}
-			
+
 	// 		var currentRoomId = currentRoom.x+":"+currentRoom.y+":"+currentRoom.z;
 	// 		areaRooms.addRoom({
 	// 			id: currentRoomId,
@@ -312,7 +312,7 @@ module.exports = function(a) {
 	// 			y: currentRoom.y,
 	// 			z: currentRoom.z,
 	// 		});
-			
+
 	// 		var exit = areaRooms.getClosestUnexploredRoom(currentRoomId,[]);
 	// 		console.log("nearest unexplored exit",exit);
 	// 		if(!exit) {
@@ -333,7 +333,7 @@ module.exports = function(a) {
 	// 		// 		exits: exits,
 	// 		// 	});	
 	// 		// }
-			
+
 	// 		app.get('actionClient').publish('actions','go '+exit.direction);
 	// 		reEvent.reset().action();
 	// 	}
@@ -349,326 +349,327 @@ module.exports = function(a) {
 	// 		app.get('actionClient').publish('actions','5buy vial');
 	// 	}
 	// }));
-    var reEvent = new RecurringEvent({ 
-		title: 'Recharge Goetia', 
+	var reEvent = new RecurringEvent({
+		title: 'Recharge Goetia',
 		intervalPeriod: 30000,
 		timeout: 10000,
 		regex: false,
 		completed: true,
-		action: function() {
+		action: function () {
 			var energies = app.get('character').energies;
-            if(energies.Goetic) {
-                console.log('current geoetic energy', energies.Goetic.current);    
-            }
-			if(energies.Goetic && energies.Goetic.current < 50) {
+			if (energies.Goetic) {
+				console.log('current geoetic energy', energies.Goetic.current);
+			}
+			if (energies.Goetic && energies.Goetic.current < 50) {
 				debug('we need more goetic energy');
-				app.get('actionClient').publish('actions','rest');
-				app.get('actionClient').publish('actions','re');
+				app.get('actionClient').publish('actions', 'rest');
+				app.get('actionClient').publish('actions', 're');
 			}
 		}
 	});
-    app.get('eventHandler').addEvent(reEvent);
+	app.get('eventHandler').addEvent(reEvent);
 
-	app.get('eventHandler').addEvent(new RecurringEvent({ 
-        title: 'sp2', 
+	app.get('eventHandler').addEvent(new RecurringEvent({
+		title: 'sp2',
 		intervalPeriod: 15000,
 		timeout: 15000,
-		action: function() {
-			app.get('actionClient').publish('actions','sp');
+		action: function () {
+			app.get('actionClient').publish('actions', 'sp');
 		}
 	}));
 
-	app.get('eventHandler').addEvent(new RecurringEvent({ 
-        title: 'tick skills', 
-		intervalPeriod: 30000,
+	app.get('eventHandler').addEvent(new RecurringEvent({
+		title: 'tick skills',
+		intervalPeriod: 3000,
 		timeout: 1000,
-		action: function() {
-			app.get('actionClient').publish('actions','perform the ritual of the shawl');
-			app.get('actionClient').publish('actions','rest');
+		action: function () {
+			// app.get('actionClient').publish('actions','perform the ritual of the shawl');
+			app.get('actionClient').publish('actions', 'rest');
+			app.get('actionClient').publish('actions', 'trme');
 		}
 	}));
 
-	app.get('eventHandler').addEvent(new RecurringEvent({ 
-        title: 'forage', 
+	app.get('eventHandler').addEvent(new RecurringEvent({
+		title: 'forage',
 		intervalPeriod: 15000,
 		timeout: 15000,
-		action: function() {
-			app.get('actionClient').publish('actions','wander');
-			app.get('actionClient').publish('actions','forage for herbs');
+		action: function () {
+			app.get('actionClient').publish('actions', 'wander');
+			app.get('actionClient').publish('actions', 'forage for herbs');
 		}
 	}));
 
-	app.get('eventHandler').addEvent(new RecurringEvent({ 
-        title: 'suffuse', 
+	app.get('eventHandler').addEvent(new RecurringEvent({
+		title: 'suffuse',
 		intervalPeriod: 15000,
 		timeout: 15000,
-		action: function() {
-			app.get('actionClient').publish('actions','suf suit');
-			app.get('actionClient').publish('actions','rest');
+		action: function () {
+			app.get('actionClient').publish('actions', 'suf suit');
+			app.get('actionClient').publish('actions', 'rest');
 		}
 	}));
 
-	app.get('eventHandler').addEvent(new RecurringEvent({ 
-        title: 'chargeup', 
+	app.get('eventHandler').addEvent(new RecurringEvent({
+		title: 'chargeup',
 		intervalPeriod: 60000,
 		timeout: 60000,
-		action: function() {
+		action: function () {
 			var energies = app.get('character').energies;
 			console.log(energies);
-			if(energies.Entropic && energies.Entropic.percent < 100) {
+			if (energies.Entropic && energies.Entropic.percent < 100) {
 				debug('we need more Entropic energy');
-				app.get('actionClient').publish('actions','me');
+				app.get('actionClient').publish('actions', 'me');
 			}
-			if(energies.Order && energies.Order.percent < 100) {
+			if (energies.Order && energies.Order.percent < 100) {
 				debug('we need more Order energy');
-				app.get('actionClient').publish('actions','ie');
+				app.get('actionClient').publish('actions', 'ie');
 			}
-			if(energies['Amalgamal Cold'] && energies['Amalgamal Cold'].percent < 100) {
+			if (energies['Amalgamal Cold'] && energies['Amalgamal Cold'].percent < 100) {
 				debug('we need more Cold energy');
-				app.get('actionClient').publish('actions','cold');
+				app.get('actionClient').publish('actions', 'cold');
 			}
-			if(energies['Amalgamal Ice'] && energies['Amalgamal Ice'].percent < 100) {
+			if (energies['Amalgamal Ice'] && energies['Amalgamal Ice'].percent < 100) {
 				debug('we need more Ice energy');
-				app.get('actionClient').publish('actions','ice');
+				app.get('actionClient').publish('actions', 'ice');
 			}
-			if(energies['Magickal'] && energies['Magickal'].percent < 100) {
+			if (energies['Magickal'] && energies['Magickal'].percent < 100) {
 				debug('we need more Magickal energy');
-				app.get('actionClient').publish('actions','mag');
+				app.get('actionClient').publish('actions', 'mag');
 			}
-			app.get('actionClient').publish('actions','rest');
+			app.get('actionClient').publish('actions', 'rest');
 		}
 	}));
 
-	app.get('eventHandler').addEvent(new RecurringEvent({ 
-        title: 'Floraphrasty', 
+	app.get('eventHandler').addEvent(new RecurringEvent({
+		title: 'Floraphrasty',
 		intervalPeriod: 30000,
 		timeout: 20000,
 		regex: /You are a.*floraphrast \((\d+)\)./i,
-		action: function() {
-			app.get('actionClient').publish('actions','skill floraphrasty');
+		action: function () {
+			app.get('actionClient').publish('actions', 'skill floraphrasty');
 		},
-		success: function(match) {
-			debug('got floraphrasty value of '+match[1]);
+		success: function (match) {
+			debug('got floraphrasty value of ' + match[1]);
 			app.get('character').skills.floraphrasty = match[1];
 			var sockets = app.get('sockets');
-			for(var i in sockets) {
+			for (var i in sockets) {
 				var socket = sockets[i];
 				socket.emit('status', { status: app.get('character') });
 			}
 		}
 	}));
 
-	app.get('eventHandler').addEvent(new RecurringEvent({ 
-        title: 'Frigus Arctus', 
+	app.get('eventHandler').addEvent(new RecurringEvent({
+		title: 'Frigus Arctus',
 		intervalPeriod: 60000,
 		timeout: 60000,
 		regex: false,
-		action: function() {
-			app.get('actionClient').publish('actions','fa');
-			app.get('actionClient').publish('actions','rest');
+		action: function () {
+			app.get('actionClient').publish('actions', 'fa');
+			app.get('actionClient').publish('actions', 'rest');
 		}
 	}));
-    
-    app.get('eventHandler').addEvent(new RecurringEvent({ 
-        title: 'Conjuration', 
+
+	app.get('eventHandler').addEvent(new RecurringEvent({
+		title: 'Conjuration',
 		intervalPeriod: 30000,
 		timeout: 20000,
 		regex: /You are a.*thanaturge \((\d+)\)./i,
-		action: function() {
-			app.get('actionClient').publish('actions','skill thanaturgy');
+		action: function () {
+			app.get('actionClient').publish('actions', 'skill thanaturgy');
 		},
-		success: function(match) {
-			debugSkills('got thanaturgy value of '+match[1]);
+		success: function (match) {
+			debugSkills('got thanaturgy value of ' + match[1]);
 			app.get('character').skills.thanaturgy = match[1];
 			var sockets = app.get('sockets');
-			for(var i in sockets) {
+			for (var i in sockets) {
 				var socket = sockets[i];
 				socket.emit('status', { status: app.get('character') });
 			}
 		}
 	}));
-    app.get('eventHandler').addEvent(new RecurringEvent({
-        title: 'Evocation',
-                intervalPeriod: 30000,
-                timeout: 20000,
-                regex: /You are a.*evoker \((\d+)\)./i,
-                action: function() {
-                        app.get('actionClient').publish('actions','skill evocation');
-                },
-                success: function(match) {
-                        debugSkills('got evocation value of '+match[1]);
-                        app.get('character').skills.evocation = match[1];
-                        var sockets = app.get('sockets');
-                        for(var i in sockets) {
-                                var socket = sockets[i];
-                                socket.emit('status', { status: app.get('character') });
-                        }
-                }
-        }));
-	app.get('eventHandler').addEvent(new RecurringEvent({ 
-		title: 'Air', 
+	app.get('eventHandler').addEvent(new RecurringEvent({
+		title: 'Evocation',
+		intervalPeriod: 30000,
+		timeout: 20000,
+		regex: /You are a.*evoker \((\d+)\)./i,
+		action: function () {
+			app.get('actionClient').publish('actions', 'skill evocation');
+		},
+		success: function (match) {
+			debugSkills('got evocation value of ' + match[1]);
+			app.get('character').skills.evocation = match[1];
+			var sockets = app.get('sockets');
+			for (var i in sockets) {
+				var socket = sockets[i];
+				socket.emit('status', { status: app.get('character') });
+			}
+		}
+	}));
+	app.get('eventHandler').addEvent(new RecurringEvent({
+		title: 'Air',
 		intervalPeriod: 30000,
 		timeout: 20000,
 		regex: false,
 		completed: true,
-		action: function() {
-			app.get('actionClient').publish('actions','ttt');
+		action: function () {
+			app.get('actionClient').publish('actions', 'ttt');
 		}
 	}));
-	app.get('eventHandler').addEvent(new RecurringEvent({ 
-		title: 'Tick', 
-		intervalPeriod: 60000,
-		timeout: 60000,
+	app.get('eventHandler').addEvent(new RecurringEvent({
+		title: 'Tick',
+		intervalPeriod: 5000,
+		timeout: 5000,
 		regex: false,
 		completed: true,
-		action: function() {
-                	app.get('actionClient').publish('actions','trme');
+		action: function () {
+			app.get('actionClient').publish('actions', 'trme');
 		}
 	}));
-	app.get('eventHandler').addEvent(new RecurringEvent({ 
-		title: 'Prayer', 
+	app.get('eventHandler').addEvent(new RecurringEvent({
+		title: 'Prayer',
 		intervalPeriod: 10000,
 		timeout: 10000,
 		regex: false,
 		completed: true,
-		action: function() {
-			app.get('actionClient').publish('actions','re');
+		action: function () {
+			app.get('actionClient').publish('actions', 're');
 		}
 	}));
-	app.get('eventHandler').addEvent(new RecurringEvent({ 
-		title: 'Death', 
+	app.get('eventHandler').addEvent(new RecurringEvent({
+		title: 'Death',
 		intervalPeriod: 10000,
 		timeout: 30000,
 		regex: false,
 		completed: true,
-		action: function() {
-			app.get('actionClient').publish('actions','sum');
-			app.get('actionClient').publish('actions','te thanaturgy');
+		action: function () {
+			app.get('actionClient').publish('actions', 'sum');
+			app.get('actionClient').publish('actions', 'te thanaturgy');
 		}
 	}));
-	app.get('eventHandler').addEvent(new RecurringEvent({ 
-		title: 'Eat', 
+	app.get('eventHandler').addEvent(new RecurringEvent({
+		title: 'Eat',
 		intervalPeriod: 60000,
 		timeout: 30000,
 		regex: false,
 		completed: true,
-		action: function() {
-			if(app.get('character').hunger.type == 'hungry') {
+		action: function () {
+			if (app.get('character').hunger.type == 'hungry') {
 				debug('EATING');
-				app.get('actionClient').publish('actions','eats');
+				app.get('actionClient').publish('actions', 'eats');
 			}
-			if(app.get('character').thirst.type == 'thirsty') {
+			if (app.get('character').thirst.type == 'thirsty') {
 				debug('DRINKING');
-				app.get('actionClient').publish('actions','eats');
+				app.get('actionClient').publish('actions', 'eats');
 			}
 		}
 	}));
-	app.get('eventHandler').addEvent(new RecurringEvent({ 
-		title: 'Hunger', 
+	app.get('eventHandler').addEvent(new RecurringEvent({
+		title: 'Hunger',
 		intervalPeriod: 60000,
 		timeout: 30000,
 		regex: /You are (.*) (hungry|satiated)./i,
-		action: function() {
-			app.get('actionClient').publish('actions','show hunger');
+		action: function () {
+			app.get('actionClient').publish('actions', 'show hunger');
 		},
-		success: function(match) {
-			debug('got hunger value of '+match[1]+' '+match[2]);
-			app.get('character').hunger = { level: match[1], type: match[2]}
+		success: function (match) {
+			debug('got hunger value of ' + match[1] + ' ' + match[2]);
+			app.get('character').hunger = { level: match[1], type: match[2] }
 			var sockets = app.get('sockets');
-			for(var i in sockets) {
+			for (var i in sockets) {
 				var socket = sockets[i];
 				socket.emit('status', { status: app.get('character') });
 			}
 		}
 	}));
-	app.get('eventHandler').addEvent(new RecurringEvent({ 
-		title: 'Thirst', 
+	app.get('eventHandler').addEvent(new RecurringEvent({
+		title: 'Thirst',
 		intervalPeriod: 60000,
 		timeout: 30000,
 		regex: /You are (.*) (quenched|thirsty)./i,
-		action: function() {
-			app.get('actionClient').publish('actions','show thirst');
+		action: function () {
+			app.get('actionClient').publish('actions', 'show thirst');
 		},
-		success: function(match) {
-			debug('got thist value of '+match[1]+' '+match[2]);
-			app.get('character').thirst = { level: match[1], type: match[2]}
+		success: function (match) {
+			debug('got thist value of ' + match[1] + ' ' + match[2]);
+			app.get('character').thirst = { level: match[1], type: match[2] }
 			var sockets = app.get('sockets');
-			for(var i in sockets) {
+			for (var i in sockets) {
 				var socket = sockets[i];
 				socket.emit('status', { status: app.get('character') });
 			}
 		}
 	}));
-	app.get('eventHandler').addEvent(new RecurringEvent({ 
-		title: 'Wealth', 
+	app.get('eventHandler').addEvent(new RecurringEvent({
+		title: 'Wealth',
 		intervalPeriod: 100000,
 		timeout: 30000,
 		regex: /You have (.*) coins./i,
-		action: function() {
-			app.get('actionClient').publish('actions','show wealth');
+		action: function () {
+			app.get('actionClient').publish('actions', 'show wealth');
 		},
-		success: function(match) {
+		success: function (match) {
 			app.get('character').wealth = parseStringToNumber(match[1]);
 			var sockets = app.get('sockets');
-			for(var i in sockets) {
+			for (var i in sockets) {
 				var socket = sockets[i];
 				socket.emit('status', { status: app.get('character') });
 			}
 		}
 	}));
-	app.get('eventHandler').addEvent(new RecurringEvent({ 
-		title: 'Heartbeat', 
+	app.get('eventHandler').addEvent(new RecurringEvent({
+		title: 'Heartbeat',
 		intervalPeriod: 2000,
 		timeout: 2000,
 		regex: /You determine that you are at the coordinates -?\d+, -?\d+, -?\d+ in (.*), and so at global coordinates (.*), (.*), (.*)\./i,
-		action: function() {
-			if(app.get('environment').living_beings.length > 0) {
-				app.get('environment').living_beings.forEach(function(being) {
-					app.get('actionClient').publish('actions','kill '+being);
+		action: function () {
+			if (app.get('environment').living_beings.length > 0) {
+				app.get('environment').living_beings.forEach(function (being) {
+					app.get('actionClient').publish('actions', 'kill ' + being);
 				});
 			}
 			else {
-				app.get('actionClient').publish('actions','determine location');
+				app.get('actionClient').publish('actions', 'determine location');
 			}
 		},
-		success: function(match) { 
-			console.log(match[2],match[3],match[4]);
-			var pos = match[2]+','+match[3]+','+match[4];
+		success: function (match) {
+			console.log(match[2], match[3], match[4]);
+			var pos = match[2] + ',' + match[3] + ',' + match[4];
 			console.log(app.get('character').exploredLocations)
-			if(app.get('character').exploredLocations[pos]) {
+			if (app.get('character').exploredLocations[pos]) {
 				var j = 1;
 				while (j < 10) {
-					var dirs = [ 
+					var dirs = [
 						{
 							dir: 'n',
-							pos: match[2]+','+(parseInt(match[3],10)+j)+','+match[4]
+							pos: match[2] + ',' + (parseInt(match[3], 10) + j) + ',' + match[4]
 						},
 						{
 							dir: 's',
-							pos: match[2]+','+(parseInt(match[3],10)-j)+','+match[4]
+							pos: match[2] + ',' + (parseInt(match[3], 10) - j) + ',' + match[4]
 						},
 						{
 							dir: 'e',
-							pos: (parseInt(match[2],10)+j)+','+match[3]+','+match[4]
+							pos: (parseInt(match[2], 10) + j) + ',' + match[3] + ',' + match[4]
 						},
 						{
 							dir: 'w',
-							pos: (parseInt(match[2],10)-j)+','+match[3]+','+match[4]
+							pos: (parseInt(match[2], 10) - j) + ',' + match[3] + ',' + match[4]
 						}
 					];
 					var i = 0;
 					while (i < 10) {
-						var dir = dirs[Math.floor(Math.random()*dirs.length)];
-						console.log('trying '+dir.pos);
-						if(!app.get('character').exploredLocations[dir.pos]) {
-							console.log('going '+dir.dir)
-							app.get('actionClient').publish('actions','go '+dir.dir);
+						var dir = dirs[Math.floor(Math.random() * dirs.length)];
+						console.log('trying ' + dir.pos);
+						if (!app.get('character').exploredLocations[dir.pos]) {
+							console.log('going ' + dir.dir)
+							app.get('actionClient').publish('actions', 'go ' + dir.dir);
 							i = 10;
 							j = 10;
 						}
-						i++;	
-					}		
-					j++;			
+						i++;
+					}
+					j++;
 				}
 			}
 			else {
@@ -676,65 +677,67 @@ module.exports = function(a) {
 			}
 		}
 	}));
-	app.get('eventHandler').addEvent(new RecurringEvent({ 
-		title: 'Race', 
+	app.get('eventHandler').addEvent(new RecurringEvent({
+		title: 'Race',
 		intervalPeriod: 60000,
 		timeout: 30000,
 		regex: /You are an? (.*)./i,
-		action: function() {
-			app.get('actionClient').publish('actions','show race');
+		action: function () {
+			app.get('actionClient').publish('actions', 'show race');
 		},
-		success: function(match) { 
+		success: function (match) {
 			app.get('character').race = match[1];
 			var sockets = app.get('sockets');
-			for(var i in sockets) {
+			for (var i in sockets) {
 				var socket = sockets[i];
 				socket.emit('status', { status: app.get('character') });
 			}
 		}
 	}));
-	app.get('eventHandler').addEvent(new RecurringEvent({ 
-		title: 'Energies', 
+	app.get('eventHandler').addEvent(new RecurringEvent({
+		title: 'Energies',
 		intervalPeriod: 10000,
 		timeout: 10000,
 		regex: /Energies of/i,
-		action: function() {
-			app.get('actionClient').publish('actions','show energies');
-			app.get('actionClient').publish('actions','rest');
+		action: function () {
+			app.get('actionClient').publish('actions', 'show energies');
+			app.get('actionClient').publish('actions', 'rest');
 		},
-		success: function(results) { 
+		success: function (results) {
 			var matches = results.input.match(/\|(.*?)\|/g);
-			for(var i in matches) {
+			for (var i in matches) {
 				var match = matches[i];
 				var bits = match.split(/\s+/);
 				var type = bits[1];
-				if(type == 'Type')
+				if (type == 'Type')
 					continue;
 				var current = parseFloat(bits[2]);
 				var maximum = parseFloat(bits[3]);
-				var percent = bits[4]?parseFloat(bits[4].replace('%','')):0.0;
+				var percent = bits[4] ? parseFloat(bits[4].replace('%', '')) : 0.0;
 				app.get('character').energies[type] = {
-					"current" : current,
-					"maximum" : maximum,
-					"percent" : percent
+					"current": current,
+					"maximum": maximum,
+					"percent": percent
 				}
 			}
-            // var energies = app.get('character').energies;
-            // console.log("FUCK YOU")
-            // if(energies.Goetic) {
-            //     console.log('current geoetic energy', energies.Goetic.current);    
-            // }
-            // if(energies.Goetic && energies.Goetic.current < 50) {
+			// var energies = app.get('character').energies;
+			// console.log("FUCK YOU")
+			// if(energies.Goetic) {
+			//     console.log('current geoetic energy', energies.Goetic.current);    
+			// }
+			// if(energies.Goetic && energies.Goetic.current < 50) {
 			// 	debug('we need more goetic energy');
 			// 	app.get('actionClient').publish('actions','rest');
 			// 	app.get('actionClient').publish('actions','re');
-            //     app.get('actionClient').publish('actions','show energies');
+			//     app.get('actionClient').publish('actions','show energies');
 			// }
 			var sockets = app.get('sockets');
-			for(var i in sockets) {
+			for (var i in sockets) {
 				var socket = sockets[i];
 				socket.emit('status', { status: app.get('character') });
 			}
 		}
 	}));
+
+	return RecurringEvent;
 }
