@@ -6,6 +6,7 @@
     "start": "node ./bin/www"
   },
   "dependencies": {
+    "@types/node": "^10.11.2",
     "ansi-to-html": "^0.3.0",
     "ansi2html": "0.0.1",
     "body-parser": "~1.13.2",

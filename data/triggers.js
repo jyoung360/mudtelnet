@@ -9,11 +9,11 @@ fs.readFile('known_messages.json',function(err,data) {
 	}
 	try {
 		knownMessages = JSON.parse(data);
+		console.log(`I know ${knownMessages.length} messages`);
 	}
 	catch(e) {
 		console.log(e);
 	}
-
 });
 
 // var natural = require('natural'),
@@ -181,7 +181,6 @@ module.exports = function(a) {
 		success: function(results) { 
 			app.set('CaptureInput', 'InProgress');
 			app.set('CaptureInputText', '')
-			console.log(results);
 		}
 	}));
 
@@ -195,7 +194,7 @@ module.exports = function(a) {
 		},
 		success: function(results) { 
 			app.set('CaptureInput', 'Complete');
-			console.log('command prompt found', app.get('CaptureInputText'));
+			// console.log('command prompt found', app.get('CaptureInputText'));
 			app.set('CaptureInputText', '')
 		}
 	}));
@@ -365,7 +364,7 @@ module.exports = function(a) {
 			// app.get('actionClient').publish('actions','touch '+results[1]);
 		}
 	}));
-	
+
 	app.get('triggerHandler').addTrigger(new Trigger({ 
 		title: 'Analyze Living', 
 		match: function(message) {
@@ -375,7 +374,7 @@ module.exports = function(a) {
             }
 		},
 		success: function(results) { 
-			app.get('environment').living_beings.push(results[1]);
+			app.get('didGuess');
 			// app.get('actionClient').publish('actions','say killing all');
 		}
 	}));
@@ -390,29 +389,21 @@ module.exports = function(a) {
 		},
 		success: function(results) { 
 			try {
-				// console.log(app.get('character'));
-				// console.log(`I think ${results[2]} is`,classifier.classify(results[2]));
 				if(knownMessages.indexOf(results[2]) != -1) {
 					console.log(`I think it is ${results[1]}`);
-					app.set('didGuess',results[1]);
+					app.set('didGuess',true);
 					setTimeout(function(){
 						app.get('actionClient').publish('actions','sv '+results[1]);
 					}, 1000);
-					
 				}
 				else {
 					if(!app.get('didGuess') && results[1] == 2){
-						console.log(`I didn't guess on 1 and don't know no ${results[1]} so I'm just guessing.`)
-						app.set('didGuess',false);
-						// app.get('actionClient').publish('actions','sv 1');
-						app.get('actionClient').publish('actions','concentrate on my own stream of thoughts');
-						// app.get('actionClient').publish('actions','show energies');
-						// app.get('actionClient').publish('actions','rest');
-					}
-					else {
-						// console.log('how did I get here', app.get('didGuess'))
+						console.log(`I didn't guess on 1 and don't know know ${results[2]} so I'm just guessing.`)
+						app.set('didGuess', true);
+						setTimeout(function(){
+							app.get('actionClient').publish('actions','sv 1');
+						}, 1000);
 						// app.get('actionClient').publish('actions','concentrate on my own stream of thoughts');
-						// console.log(`I have no guess for ${results[1]}`);
 					}
 				}
 				app.get('current_markov')[results[1]] = { 
@@ -425,8 +416,6 @@ module.exports = function(a) {
 					statement: results[2]
 				};
 			}
-			
-			// app.get('actionClient').publish('actions','say killing all');
 		}
 	}));
 
@@ -439,13 +428,14 @@ module.exports = function(a) {
             }
 		},
 		success: function(results) { 
-			if(knownMessages.indexOf(app.get('current_markov')[1].statement) == -1) {
-				knownMessages.push(app.get('current_markov')[1].statement);
-				console.log('found a new valid message!');
-				fs.writeFileSync('known_messages.json', JSON.stringify(knownMessages));
+			var currentMarkhovs = app.get('current_markov');
+			if(!currentMarkhovs[1]) {
+				return;
 			}
-			else {
-				console.log(`We already know about ${app.get('current_markov')[1].statement}`);
+			if(knownMessages.indexOf(currentMarkhovs[1].statement) == -1) {
+				knownMessages.push(currentMarkhovs[1].statement);
+				console.log(`Adding ${currentMarkhovs[1].statement} to json`);
+				fs.writeFileSync('known_messages.json', JSON.stringify(knownMessages));
 			}
 			app.get('markovs')[1].push( {
 				quote: app.get('current_markov')[1],
@@ -465,6 +455,8 @@ module.exports = function(a) {
 			// });
 
 			app.set('didGuess',false);
+
+			console.log(`I know ${knownMessages.length} messages`);
 			// app.get('actionClient').publish('actions','say killing all');
 		}
 	}));
@@ -478,12 +470,14 @@ module.exports = function(a) {
             }
 		},
 		success: function(results) { 
-			if(knownMessages.indexOf(app.get('current_markov')[2].statement) == -1) {
-				knownMessages.push(app.get('current_markov')[2].statement);
-				fs.writeFileSync('known_messages.json', JSON.stringify(knownMessages));
+			var currentMarkhovs = app.get('current_markov');
+			if(!currentMarkhovs[2]) {
+				return;
 			}
-			else {
-				console.log(`We already know about ${app.get('current_markov')[1].statement}`);
+			if(knownMessages.indexOf(currentMarkhovs[2].statement) == -1) {
+				knownMessages.push(currentMarkhovs[2].statement);
+				console.log(`Adding ${currentMarkhovs[2].statement} to json`);
+				fs.writeFileSync('known_messages.json', JSON.stringify(knownMessages));
 			}
 			app.get('markovs')[1].push( {
 				quote: app.get('current_markov')[1],
@@ -502,6 +496,7 @@ module.exports = function(a) {
 			// classifier.save('classifier.json', function(err, classifier) {
 			// });
 			app.set('didGuess',false);
+			console.log(`I know ${knownMessages.length} messages`);
 			// app.get('actionClient').publish('actions','say killing all');
 		}
 	}));
@@ -557,6 +552,20 @@ module.exports = function(a) {
 			// app.get('actionClient').publish('actions','say killing all');
 		}
 	}));
+
+	// app.get('triggerHandler').addTrigger(new Trigger({ 
+	// 	title: 'lump', 
+	// 	match: function(message) {
+	// 		var regex = /lump/i;
+    //         if(match = message.match(regex)) {
+	// 			// console.log(match);
+    //             return match;
+    //         }
+	// 	},
+	// 	success: function(results) { 
+	// 		app.get('actionClient').publish('actions','stop');
+	// 	}
+	// }));
     
     app.get('triggerHandler').addTrigger(new Trigger({ 
 		title: 'Energies', 
