@@ -22,14 +22,14 @@ app.set('port', port);
 /**
  * Create HTTP server.
  */
-var redis = require("redis"),
+var redis = require('redis'),
   client = redis.createClient(6379, '127.0.0.1'),
   actionClient = redis.createClient(6379, '127.0.0.1');
-client.subscribe("mud-raw-input");
-client.subscribe("mud-input");
-client.subscribe("system-input");
-client.on("subscribe", function (channel, count) {
-  debug("subscribed to channel %s", channel);
+client.subscribe('mud-raw-input');
+client.subscribe('mud-input');
+client.subscribe('system-input');
+client.on('subscribe', function(channel, count) {
+  debug('subscribed to channel %s', channel);
 });
 
 app.set('actionClient', actionClient);
@@ -46,39 +46,42 @@ app.set('accuracy', []);
 app.set('didGuess', false);
 
 var io = require('socket.io')(server);
-io.on('connection', function (socket) {
+io.on('connection', function(socket) {
   app.get('sockets').push(socket);
-  socket.on('command', function (data) {
+  socket.on('command', function(data) {
     debug('got command from browser:', data);
     app.get('actionClient').publish('actions', data);
   });
-  socket.on('disconnect', function () {
-    app.set('sockets', app.get('sockets').filter(function (item) {
-      if (item.id != socket.id) {
-        return item;
-      }
-    }));
+  socket.on('disconnect', function() {
+    app.set(
+      'sockets',
+      app.get('sockets').filter(function(item) {
+        if (item.id != socket.id) {
+          return item;
+        }
+      })
+    );
   });
 });
 
-var EventHandler = function () {
+var EventHandler = function() {
   var self = this;
   this.eventLoop = [];
-  this.addEvent = function (event) {
+  this.addEvent = function(event) {
     for (var i in self.eventLoop) {
       if (event.title == self.eventLoop[i]) {
         debug('event ' + event.title + ' already on event loop');
         return false;
       }
     }
-    debug('adding event ' + event.toString())
+    debug('adding event ' + event.toString());
     self.eventLoop.push(event.reset().action());
   };
-  this.getEvents = function () {
+  this.getEvents = function() {
     return self.eventLoop;
   };
-  this.cleanLoop = function () {
-    self.eventLoop = self.eventLoop.filter(function (event) {
+  this.cleanLoop = function() {
+    self.eventLoop = self.eventLoop.filter(function(event) {
       if (event.completed) {
         debug('Removing event ' + event.title + ' because it was completed');
         return false;
@@ -89,24 +92,24 @@ var EventHandler = function () {
         return false;
       }
       return true;
-    })
-  }
+    });
+  };
 };
 
-var TriggerHandler = function () {
+var TriggerHandler = function() {
   var self = this;
   this.triggerLoop = [];
-  this.addTrigger = function (trigger) {
+  this.addTrigger = function(trigger) {
     for (var i in self.triggerLoop) {
       if (trigger.title == self.triggerLoop[i]) {
         debug('trigger ' + trigger.title + ' already on trigger loop');
         return false;
       }
     }
-    debug('adding event ' + trigger.toString())
+    debug('adding event ' + trigger.toString());
     self.triggerLoop.push(trigger);
   };
-  this.getTriggers = function () {
+  this.getTriggers = function() {
     return self.triggerLoop;
   };
 };
@@ -126,16 +129,16 @@ setInterval(eventHandler.cleanLoop, 10000);
 
 //setInterval(addToLoop, 10000);
 
-client.on("message", function (channel, message) {
+client.on('message', function(channel, message) {
   if (channel == 'mud-raw-input') {
     var strippedMessage = stripAnsi(message);
     //strippedMessage = strippedMessage.replace(/(?:\r\n|\r|\n)/g, ' ');
     var lines = strippedMessage.split('\n');
-    lines.forEach(function (line) {
+    lines.forEach(function(line) {
       for (var i in eventHandler.eventLoop) {
         var event = eventHandler.eventLoop[i];
         if (event.completed) continue;
-        if (match = line.match(event.regex)) {
+        if ((match = line.match(event.regex))) {
           event.completed = true;
           event.success(match);
           debug('found event ' + event.title);
@@ -143,11 +146,11 @@ client.on("message", function (channel, message) {
       }
       for (var i in triggerHandler.triggerLoop) {
         var trigger = triggerHandler.triggerLoop[i];
-        if (match = trigger.match(line)) {
+        if ((match = trigger.match(line))) {
           trigger.success(match);
         }
       }
-    })
+    });
     var sockets = app.get('sockets');
     for (var i in sockets) {
       var socket = sockets[i];
@@ -155,36 +158,42 @@ client.on("message", function (channel, message) {
     }
   }
   if (channel == 'system-input') {
-    if (match = message.match(/^enable (.*)/)) {
+    if ((match = message.match(/^enable (.*)/))) {
       app.get('enabledEvents').push(match[1].toLowerCase());
-    }
-    else if (match = message.match(/^disable (.*)/)) {
-      app.set('enabledEvents', app.get('enabledEvents').filter(function (event) {
-        if (event != match[1].toLowerCase()) {
-          return event;
-        }
-      }));
-    }
-    else if (match = message.match(/^tstart (\D*) (\d)/)) {
+    } else if ((match = message.match(/^disable (.*)/))) {
+      app.set(
+        'enabledEvents',
+        app.get('enabledEvents').filter(function(event) {
+          if (event != match[1].toLowerCase()) {
+            return event;
+          }
+        })
+      );
+    } else if ((match = message.match(/^tstart (\D*) (\d)/))) {
       console.log('adding new timer', match);
       var actionString = match[1].toString();
-      app.get('eventHandler').addEvent(new Event({
-        title: match[1],
-        intervalPeriod: match[2] * 1000,
-        timeout: 1000,
-        action: function () {
-
-          app.get('actionClient').publish('actions', actionString);
-        }
-      }));
+      app.get('eventHandler').addEvent(
+        new Event({
+          title: match[1],
+          intervalPeriod: match[2] * 1000,
+          timeout: 1000,
+          action: function() {
+            app.get('actionClient').publish('actions', actionString);
+          },
+        })
+      );
       app.get('enabledEvents').push(match[1].toLowerCase());
-    }
-    else if (match = message.match(/^tstop (.*)/)) {
-      app.set('enabledEvents', app.get('enabledEvents').filter(function (event) {
-        if (event != match[1].toLowerCase()) {
-          return event;
-        }
-      }));
+    } else if ((match = message.match(/^tstop (.*)/))) {
+      app.set(
+        'enabledEvents',
+        app.get('enabledEvents').filter(function(event) {
+          if (event != match[1].toLowerCase()) {
+            return event;
+          }
+        })
+      );
+    } else if ((match = message.match(/^markhov guess (.*)/))) {
+      app.set('markhavGuessing', match[1]);
     }
     //app.get('enabledEvents').push(message.toLowerCase());
     //return handleSystemMessage(message);
@@ -230,9 +239,7 @@ function onError(error) {
     throw error;
   }
 
-  var bind = typeof port === 'string'
-    ? 'Pipe ' + port
-    : 'Port ' + port;
+  var bind = typeof port === 'string' ? 'Pipe ' + port : 'Port ' + port;
 
   // handle specific listen errors with friendly messages
   switch (error.code) {
@@ -255,8 +262,6 @@ function onError(error) {
 
 function onListening() {
   var addr = server.address();
-  var bind = typeof addr === 'string'
-    ? 'pipe ' + addr
-    : 'port ' + addr.port;
+  var bind = typeof addr === 'string' ? 'pipe ' + addr : 'port ' + addr.port;
   debug('Listening on ' + bind);
 }
